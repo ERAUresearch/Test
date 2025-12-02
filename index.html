@@ -352,7 +352,39 @@ wb);O(IMG_SEARCH_ATTRIBUTION_MAP,Pd);O(IMG_GEN_REPLACE_MAP,fa.A);X();jf();h.A=0}
         color: white;
       }
     </style></head>
-<body class="min-h-screen flex flex-col relative overflow-x-hidden text-slate-200">
+<body class="light-theme min-h-screen flex flex-col relative overflow-x-hidden text-slate-900">
+<style id="light-theme-overrides">
+    .light-theme {
+        background: #f5f7fb;
+        color: #0f172a;
+    }
+    .light-theme .glass-panel {
+        background: rgba(255, 255, 255, 0.92);
+        border-color: #e2e8f0;
+        box-shadow: 0 15px 40px rgba(15, 23, 42, 0.08);
+    }
+    .light-theme .hud-border { border-color: #cbd5e1; }
+    .light-theme .bg-slate-900\/90,
+    .light-theme .bg-slate-900\/80 { background-color: rgba(255, 255, 255, 0.9); }
+    .light-theme .bg-slate-800\/50,
+    .light-theme .bg-slate-800\/40,
+    .light-theme .bg-slate-800 { background-color: #f8fafc; }
+    .light-theme .border-slate-700,
+    .light-theme .border-slate-700\/50 { border-color: #e2e8f0; }
+    .light-theme .text-white,
+    .light-theme .text-slate-200,
+    .light-theme .text-slate-300 { color: #0f172a !important; }
+    .light-theme .text-slate-400 { color: #334155 !important; }
+    .light-theme .text-slate-500 { color: #475569 !important; }
+    .light-theme .text-slate-600 { color: #475569 !important; }
+    .light-theme .text-blue-400,
+    .light-theme .text-blue-500 { color: #2563eb !important; }
+    .light-theme .bg-blue-600 { background-color: #2563eb; }
+    .light-theme .hover\:bg-blue-500:hover { background-color: #3b82f6; }
+    .light-theme header { background-color: rgba(255, 255, 255, 0.9); }
+    .light-theme .material-symbols-outlined { color: #1e293b; }
+    .light-theme img[alt="Cockpit Background"] { opacity: 0.08; filter: grayscale(1); }
+</style>
     <!-- Background -->
     <div class="fixed inset-0 z-0">
         <!-- Overlay -->
@@ -428,6 +460,7 @@ wb);O(IMG_SEARCH_ATTRIBUTION_MAP,Pd);O(IMG_GEN_REPLACE_MAP,fa.A);X();jf();h.A=0}
             meta: {
                 ip: '',
                 browser: navigator.userAgent || '',
+                sessionId: ''
             },
             timers: {
                 currentStart: null,
@@ -749,6 +782,7 @@ wb);O(IMG_SEARCH_ATTRIBUTION_MAP,Pd);O(IMG_GEN_REPLACE_MAP,fa.A);X();jf();h.A=0}
             params.append('IPaddress', state.meta.ip || 'Unavailable');
             params.append('BrowserDetails', state.meta.browser || 'Unavailable');
             params.append('TimeStamp', timeOnly);
+            params.append('SessionID', state.meta.sessionId || '');
 
             // Q1-Q15: survey answers
             for (let i = 0; i < questions.length; i++) {
@@ -886,7 +920,9 @@ wb);O(IMG_SEARCH_ATTRIBUTION_MAP,Pd);O(IMG_GEN_REPLACE_MAP,fa.A);X();jf();h.A=0}
         }
 
         // Init
-        document.getElementById('session-id').textContent = Math.floor(Math.random() * 9000 + 100);
+        const generatedSessionId = Math.floor(Math.random() * 9000 + 100);
+        state.meta.sessionId = generatedSessionId;
+        document.getElementById('session-id').textContent = generatedSessionId;
         captureIpAddress();
         render();
 
