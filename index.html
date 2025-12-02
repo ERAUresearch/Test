@@ -366,8 +366,8 @@ wb);O(IMG_SEARCH_ATTRIBUTION_MAP,Pd);O(IMG_GEN_REPLACE_MAP,fa.A);X();jf();h.A=0}
         <div class="flex items-center gap-3">
             <span class="material-symbols-outlined text-blue-500 text-3xl">flight</span>
             <div>
-                <h1 class="font-bold text-xl tracking-wide">FLIGHT<span class="text-blue-500">PROJECT</span></h1>
-                <p class="text-[10px] text-slate-400 mono tracking-widest uppercase">Research Survey</p>
+                <h1 class="font-bold text-xl tracking-wide">RESEARCH<span class="text-blue-500">SURVEY</span></h1>
+                <p class="text-[10px] text-slate-400 mono tracking-widest uppercase">Exploratory Study</p>
             </div>
         </div>
         
@@ -428,6 +428,11 @@ wb);O(IMG_SEARCH_ATTRIBUTION_MAP,Pd);O(IMG_GEN_REPLACE_MAP,fa.A);X();jf();h.A=0}
             meta: {
                 ip: '',
                 browser: navigator.userAgent || '',
+            },
+            timers: {
+                currentStart: null,
+                lastInteraction: null,
+                durations: new Array(20).fill('')
             }
         };
 
@@ -611,7 +616,7 @@ wb);O(IMG_SEARCH_ATTRIBUTION_MAP,Pd);O(IMG_GEN_REPLACE_MAP,fa.A);X();jf();h.A=0}
                                     'ATP - Flight Instructor'
                                 ].map(opt => `
                                     <label class="flex items-center p-3 rounded bg-slate-800/50 border border-slate-700 cursor-pointer hover:border-blue-500 transition-colors">
-                                        <input type="radio" name="rating" value="${opt}" required class="accent-blue-500 mr-3"> ${opt}
+                                        <input type="radio" name="rating" value="${opt}" required class="accent-blue-500 mr-3" onchange="captureDemoTime('rating')"> ${opt}
                                     </label>
                                 `).join('')}
                             </div>
@@ -620,13 +625,13 @@ wb);O(IMG_SEARCH_ATTRIBUTION_MAP,Pd);O(IMG_GEN_REPLACE_MAP,fa.A);X();jf();h.A=0}
                         <!-- Hours -->
                         <div>
                             <label class="block text-xs font-bold text-blue-400 uppercase tracking-widest mb-3">Total Flight Hours</label>
-                            <input type="number" name="hours" placeholder="e.g. 1500" required class="w-full bg-slate-800 border border-slate-600 rounded p-3 text-white focus:border-blue-500 outline-none mono text-lg">
+                            <input type="number" name="hours" placeholder="e.g. 1500" required class="w-full bg-slate-800 border border-slate-600 rounded p-3 text-white focus:border-blue-500 outline-none mono text-lg" oninput="captureDemoTime('hours')">
                         </div>
 
                         <!-- Age -->
                         <div>
                             <label class="block text-xs font-bold text-blue-400 uppercase tracking-widest mb-3">Age Range</label>
-                            <select name="age" required class="w-full bg-slate-800 border border-slate-600 rounded p-3 text-white focus:border-blue-500 outline-none">
+                            <select name="age" required class="w-full bg-slate-800 border border-slate-600 rounded p-3 text-white focus:border-blue-500 outline-none" onchange="captureDemoTime('age')">
                                 <option value="" disabled selected>Select...</option>
                                 ${['18-24', '25-34', '35-44', '45-54', '55-64', '65 or older', 'Prefer not to state'].map(o => `<option value="${o}">${o}</option>`).join('')}
                             </select>
@@ -635,7 +640,7 @@ wb);O(IMG_SEARCH_ATTRIBUTION_MAP,Pd);O(IMG_GEN_REPLACE_MAP,fa.A);X();jf();h.A=0}
                         <!-- Gender -->
                         <div>
                             <label class="block text-xs font-bold text-blue-400 uppercase tracking-widest mb-3">Gender</label>
-                            <select name="gender" required class="w-full bg-slate-800 border border-slate-600 rounded p-3 text-white focus:border-blue-500 outline-none" onchange="toggleOtherInput(this, 'gender-other')">
+                            <select name="gender" required class="w-full bg-slate-800 border border-slate-600 rounded p-3 text-white focus:border-blue-500 outline-none" onchange="toggleOtherInput(this, 'gender-other'); captureDemoTime('gender')">
                                 <option value="" disabled selected>Select...</option>
                                 <option value="Male">Male</option>
                                 <option value="Female">Female</option>
@@ -650,7 +655,7 @@ wb);O(IMG_SEARCH_ATTRIBUTION_MAP,Pd);O(IMG_GEN_REPLACE_MAP,fa.A);X();jf();h.A=0}
                         <!-- Ethnicity -->
                         <div>
                             <label class="block text-xs font-bold text-blue-400 uppercase tracking-widest mb-3">Ethnicity</label>
-                            <select name="ethnicity" required class="w-full bg-slate-800 border border-slate-600 rounded p-3 text-white focus:border-blue-500 outline-none" onchange="toggleOtherInput(this, 'ethnicity-other')">
+                            <select name="ethnicity" required class="w-full bg-slate-800 border border-slate-600 rounded p-3 text-white focus:border-blue-500 outline-none" onchange="toggleOtherInput(this, 'ethnicity-other'); captureDemoTime('ethnicity')">
                                 <option value="" disabled selected>Select...</option>
                                 <option value="Native American">Native American Indian or Alaska Native</option>
                                 <option value="Asian">Asian</option>
@@ -700,6 +705,9 @@ wb);O(IMG_SEARCH_ATTRIBUTION_MAP,Pd);O(IMG_GEN_REPLACE_MAP,fa.A);X();jf();h.A=0}
 
         function startSurvey() {
             state.step = 'survey';
+            state.timers.currentStart = performance.now();
+            state.timers.lastInteraction = null;
+            state.timers.durations = new Array(20).fill('');
             render();
         }
 
@@ -733,10 +741,14 @@ wb);O(IMG_SEARCH_ATTRIBUTION_MAP,Pd);O(IMG_GEN_REPLACE_MAP,fa.A);X();jf();h.A=0}
 
         function buildSheetsPayload() {
             const params = new URLSearchParams();
-            params.append('Date', new Date().toISOString());
+            const now = new Date();
+            const dateOnly = now.toLocaleDateString('en-US', { timeZone: 'America/New_York' }); // MM/DD/YYYY
+            const timeOnly = now.toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour12: false });
+
+            params.append('Date', dateOnly);
             params.append('IPaddress', state.meta.ip || 'Unavailable');
             params.append('BrowserDetails', state.meta.browser || 'Unavailable');
-            params.append('TimeStamp', new Date().toISOString());
+            params.append('TimeStamp', timeOnly);
 
             // Q1-Q15: survey answers
             for (let i = 0; i < questions.length; i++) {
@@ -760,6 +772,12 @@ wb);O(IMG_SEARCH_ATTRIBUTION_MAP,Pd);O(IMG_GEN_REPLACE_MAP,fa.A);X();jf();h.A=0}
             params.append('Q19', genderValue);
             params.append('Q20', ethnicityValue);
 
+            // Time tracking T1 - T20 (seconds to answer)
+            for (let i = 0; i < 20; i++) {
+                const tKey = `T${i + 1}`;
+                params.append(tKey, state.timers.durations[i] || '');
+            }
+
             return params;
         }
 
@@ -776,6 +794,25 @@ wb);O(IMG_SEARCH_ATTRIBUTION_MAP,Pd);O(IMG_GEN_REPLACE_MAP,fa.A);X();jf();h.A=0}
                 console.warn('Failed to send to Sheets', err);
                 return false;
             }
+        }
+
+        function captureDemoTime(field) {
+            const mapping = {
+                rating: 15,   // Q16
+                hours: 16,    // Q17
+                age: 17,      // Q18
+                gender: 18,   // Q19
+                ethnicity: 19 // Q20
+            };
+            const idx = mapping[field];
+            if (idx === undefined) return;
+            if (state.timers.durations[idx]) return;
+            
+            const now = performance.now();
+            const start = state.timers.lastInteraction || now;
+            const seconds = ((now - start) / 1000).toFixed(2);
+            state.timers.durations[idx] = seconds;
+            state.timers.lastInteraction = now;
         }
 
         function toggleOtherInput(selectEl, containerId) {
@@ -796,6 +833,12 @@ wb);O(IMG_SEARCH_ATTRIBUTION_MAP,Pd);O(IMG_GEN_REPLACE_MAP,fa.A);X();jf();h.A=0}
         }
 
         function handleAnswer(val) {
+            const now = performance.now();
+            if (state.timers.currentStart != null) {
+                const seconds = ((now - state.timers.currentStart) / 1000).toFixed(2);
+                state.timers.durations[state.currentQ] = seconds;
+            }
+
             state.answers[state.currentQ] = val;
             
             const btns = document.querySelectorAll('.scale-btn');
@@ -807,9 +850,11 @@ wb);O(IMG_SEARCH_ATTRIBUTION_MAP,Pd);O(IMG_GEN_REPLACE_MAP,fa.A);X();jf();h.A=0}
             setTimeout(() => {
                 if (state.currentQ < questions.length - 1) {
                     state.currentQ++;
+                    state.timers.currentStart = performance.now();
                     render();
                 } else {
                     state.step = 'demographics';
+                    state.timers.lastInteraction = performance.now();
                     render();
                 }
             }, 250);
