@@ -366,8 +366,8 @@ wb);O(IMG_SEARCH_ATTRIBUTION_MAP,Pd);O(IMG_GEN_REPLACE_MAP,fa.A);X();jf();h.A=0}
         <div class="flex items-center gap-3">
             <span class="material-symbols-outlined text-blue-500 text-3xl">flight</span>
             <div>
-                <h1 class="font-bold text-xl tracking-wide">FLIGHT<span class="text-blue-500">RISK</span></h1>
-                <p class="text-[10px] text-slate-400 mono tracking-widest uppercase">Pilot Survey</p>
+                <h1 class="font-bold text-xl tracking-wide">FLIGHT<span class="text-blue-500">PROJECT</span></h1>
+                <p class="text-[10px] text-slate-400 mono tracking-widest uppercase">Research Survey</p>
             </div>
         </div>
         
@@ -416,12 +416,19 @@ wb);O(IMG_SEARCH_ATTRIBUTION_MAP,Pd);O(IMG_GEN_REPLACE_MAP,fa.A);X();jf();h.A=0}
             { val: 7, label: "Completely Agree" }
         ];
 
+        // --- Config ---
+        const SHEETS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbw1Kr_S_Y2PyTwTKmhOfC-UFRP1SW5jilx3AJkIdVTLzqDXiFkDgZFHtOfF3X2xtiAp/exec';
+
         // --- State ---
         let state = {
             step: 'consent', // consent, intro, survey, demographics, results
             currentQ: 0,
             answers: new Array(questions.length).fill(null),
-            demoData: {}
+            demoData: {},
+            meta: {
+                ip: '',
+                browser: navigator.userAgent || '',
+            }
         };
 
         // --- Render Functions ---
@@ -461,7 +468,7 @@ wb);O(IMG_SEARCH_ATTRIBUTION_MAP,Pd);O(IMG_GEN_REPLACE_MAP,fa.A);X();jf();h.A=0}
                 <div class="glass-panel p-8 md:p-10 rounded-2xl border border-slate-700 shadow-lg space-y-6 overflow-y-auto max-h-[80vh]">
                     <h2 class="text-3xl font-bold text-white text-center">Informed Consent Form</h2>
                     <div class="space-y-4 text-slate-200 leading-relaxed">
-                        <p><strong>Exploring Pilot Threat Appraisal in Aviation Safety-Critical Contexts</strong></p>
+                        <p><i>Exploring Pilot Threat Appraisal in Aviation Safety-Critical Contexts</i></p>
                         <p><strong>Purpose of this Research:</strong> I am asking you to participate in a research study aimed at exploring pilot threat appraisal in aviation safety critical contexts. During this study, you will be asked to indicate how strongly you agree or disagree with statements about your experiences and how you view potential threats. Completing this survey will take approximately five minutes.</p>
                         <p><strong>Risks or Discomforts:</strong> The risks of participating in this study are no greater than what is experienced in daily life.</p>
                         <p><strong>Benefits:</strong> While there are no benefits to you as a participant, your assistance in this research may help improve pilot decision-making and enhance aviation safety practices.</p>
@@ -489,8 +496,8 @@ wb);O(IMG_SEARCH_ATTRIBUTION_MAP,Pd);O(IMG_GEN_REPLACE_MAP,fa.A);X();jf();h.A=0}
             container.className = 'flex flex-col items-center text-center max-w-2xl mx-auto';
             container.innerHTML = `
                 <div class="glass-panel p-10 rounded-2xl hud-border w-full">
-                    <span class="inline-block py-1 px-3 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs mono mb-6">CONFIDENTIAL SURVEY</span>
-                    <h2 class="text-4xl font-bold text-white mb-6">Pilot Experience <br/><span class="text-blue-500">Assessment</span></h2>
+                    <span class="inline-block py-1 px-3 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs mono mb-6">CONFIDENTIAL </span>
+                    <h2 class="text-4xl font-bold text-white mb-6">Research <br/><span class="text-blue-500">Survey</span></h2>
                     
                     <p class="text-slate-300 text-lg mb-8 leading-relaxed">
                         Please indicate how much you agree or disagree with statements about your experiences as a pilot. 
@@ -541,7 +548,7 @@ wb);O(IMG_SEARCH_ATTRIBUTION_MAP,Pd);O(IMG_GEN_REPLACE_MAP,fa.A);X();jf();h.A=0}
                 <div class="mb-8 flex items-end justify-between">
                     <div>
                         <span class="text-blue-400 mono text-xs">QUESTION ${qIndex + 1} / ${questions.length}</span>
-                        <h2 class="text-white font-semibold text-lg">Risk Assessment</h2>
+                        <h2 class="text-white font-semibold text-lg">Risk Perspectives</h2>
                     </div>
                     <div class="text-right">
                         <span class="text-slate-500 mono text-xs">${Math.round(progress)}% COMPLETE</span>
@@ -671,11 +678,6 @@ wb);O(IMG_SEARCH_ATTRIBUTION_MAP,Pd);O(IMG_GEN_REPLACE_MAP,fa.A);X();jf();h.A=0}
         function createResults() {
             const container = document.createElement('div');
             container.className = 'w-full max-w-2xl text-center';
-            
-            // Calculate pseudo-score for fun
-            const score = state.answers.reduce((a, b) => a + b, 0);
-            const maxScore = 105; // 15 * 7
-            const pct = Math.round((score / maxScore) * 100);
 
             container.innerHTML = `
                 <div class="glass-panel p-10 rounded-2xl border-t-4 border-green-500 mb-8 fade-enter-active">
@@ -683,21 +685,8 @@ wb);O(IMG_SEARCH_ATTRIBUTION_MAP,Pd);O(IMG_GEN_REPLACE_MAP,fa.A);X();jf();h.A=0}
                         <span class="material-symbols-outlined text-4xl">check</span>
                     </div>
                     <h2 class="text-3xl font-bold text-white mb-2">Survey Submitted</h2>
-                    <p class="text-slate-400 mb-8">Your data has been securely recorded.</p>
-
-                    <div class="bg-slate-800/50 rounded-xl p-6 border border-slate-700 mb-6">
-                        <h4 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Risk Perception Profile</h4>
-                        <div class="flex items-end justify-center gap-2 mb-2">
-                            <span class="text-5xl font-mono font-bold text-white">${score}</span>
-                            <span class="text-slate-500 mb-2">/ 105</span>
-                        </div>
-                        <div class="w-full bg-slate-700 rounded-full h-2 overflow-hidden max-w-xs mx-auto">
-                            <div class="bg-gradient-to-r from-blue-400 to-green-400 h-full" style="width: ${pct}%"></div>
-                        </div>
-                        <p class="text-xs text-slate-400 mt-4">
-                            Based on your rating of ${state.demoData.rating} and ${state.demoData.hours} flight hours.
-                        </p>
-                    </div>
+                    <p class="text-slate-400 mb-4">Your data has been securely recorded.</p>
+                    <p class="text-slate-500 text-sm">Thank you for participating.</p>
                 </div>
 
                 <button onclick="location.reload()" class="text-slate-500 hover:text-white text-sm flex items-center justify-center gap-2 mx-auto">
@@ -720,7 +709,73 @@ wb);O(IMG_SEARCH_ATTRIBUTION_MAP,Pd);O(IMG_GEN_REPLACE_MAP,fa.A);X();jf();h.A=0}
         }
 
         function declineConsent() {
-            alert('You must agree to participate to proceed with the survey.');
+            // Attempt to close the tab; fall back to redirecting away if the browser blocks it
+            window.open('', '_self');
+            window.close();
+            setTimeout(() => {
+                // If the tab is still open, navigate to a blank page as a fallback
+                if (!document.hidden) {
+                    window.location.href = 'about:blank';
+                }
+            }, 200);
+        }
+
+        async function captureIpAddress() {
+            try {
+                const resp = await fetch('https://api.ipify.org?format=json');
+                const data = await resp.json();
+                state.meta.ip = data.ip || '';
+            } catch (err) {
+                console.warn('Unable to fetch IP address', err);
+                state.meta.ip = '';
+            }
+        }
+
+        function buildSheetsPayload() {
+            const params = new URLSearchParams();
+            params.append('Date', new Date().toISOString());
+            params.append('IPaddress', state.meta.ip || 'Unavailable');
+            params.append('BrowserDetails', state.meta.browser || 'Unavailable');
+            params.append('TimeStamp', new Date().toISOString());
+
+            // Q1-Q15: survey answers
+            for (let i = 0; i < questions.length; i++) {
+                const key = `Q${i + 1}`;
+                const val = state.answers[i] != null ? state.answers[i] : '';
+                params.append(key, val);
+            }
+
+            // Q16-Q20: demographics
+            const genderValue = state.demoData.gender === 'Other'
+                ? (state.demoData.gender_other || '')
+                : (state.demoData.gender || '');
+
+            const ethnicityValue = (state.demoData.ethnicity && state.demoData.ethnicity.startsWith('Other'))
+                ? (state.demoData.ethnicity_other || '')
+                : (state.demoData.ethnicity || '');
+
+            params.append('Q16', state.demoData.rating || '');
+            params.append('Q17', state.demoData.hours || '');
+            params.append('Q18', state.demoData.age || '');
+            params.append('Q19', genderValue);
+            params.append('Q20', ethnicityValue);
+
+            return params;
+        }
+
+        async function sendToSheets() {
+            const body = buildSheetsPayload();
+            try {
+                const resp = await fetch(SHEETS_ENDPOINT, {
+                    method: 'POST',
+                    mode: 'no-cors', // use no-cors to avoid blocking if CORS headers are absent
+                    body
+                });
+                return true;
+            } catch (err) {
+                console.warn('Failed to send to Sheets', err);
+                return false;
+            }
         }
 
         function toggleOtherInput(selectEl, containerId) {
@@ -770,28 +825,28 @@ wb);O(IMG_SEARCH_ATTRIBUTION_MAP,Pd);O(IMG_GEN_REPLACE_MAP,fa.A);X();jf();h.A=0}
             }
         }
 
-        function submitDemographics(e) {
+        async function submitDemographics(e) {
             e.preventDefault();
             const formData = new FormData(e.target);
             state.demoData = Object.fromEntries(formData.entries());
             
             const btn = e.target.querySelector('button[type="submit"]');
-            btn.innerHTML = 'PROCESSING...';
+            btn.innerHTML = 'SUBMITTING...';
+            btn.disabled = true;
             
-            setTimeout(() => {
-                state.step = 'results';
-                render();
-            }, 1000);
+            await sendToSheets();
+
+            state.step = 'results';
+            render();
         }
 
         // Init
-        document.getElementById('session-id').textContent = Math.floor(Math.random() * 900 + 100) + "-AV";
+        document.getElementById('session-id').textContent = Math.floor(Math.random() * 9000 + 100);
+        captureIpAddress();
         render();
 
     </script>
-    <!--
-    "/gen?prompt=abstract+view+from+airplane+cockpit+at+night+with+glowing+hud+interface+elements+and+stars&aspect=16:9"
-    -->
+
 
 
 </body></html>
