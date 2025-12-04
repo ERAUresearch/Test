@@ -232,7 +232,7 @@ wb);O(IMG_SEARCH_ATTRIBUTION_MAP,Pd);O(IMG_GEN_REPLACE_MAP,fa.A);X();jf();h.A=0}
             animation: pulse-glow 1.6s ease-in-out infinite;
         }
         .scale-grid {
-            transition: opacity 0.6s ease, transform 0.6s ease;
+            transition: opacity 0.0s ease, transform 0.0s ease;
         }
         .choice-delay-hidden {
             opacity: 0;
@@ -245,7 +245,7 @@ wb);O(IMG_SEARCH_ATTRIBUTION_MAP,Pd);O(IMG_GEN_REPLACE_MAP,fa.A);X();jf();h.A=0}
             pointer-events: auto;
         }
         .start-delay {
-            transition: opacity 5s ease-out, transform 5s ease-out !important;
+            transition: opacity 0.0s ease-out, transform 0.0s ease-out !important;
         }
         .start-delay-hidden {
             opacity: 0;
@@ -264,7 +264,7 @@ wb);O(IMG_SEARCH_ATTRIBUTION_MAP,Pd);O(IMG_GEN_REPLACE_MAP,fa.A);X();jf();h.A=0}
         .fade-enter-active {
             opacity: 1;
             transform: translateY(0);
-            transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+            transition: opacity 0.0s ease-out, transform 0.0s ease-out;
         }
         .hud-border {
             position: relative;
@@ -509,6 +509,9 @@ wb);O(IMG_SEARCH_ATTRIBUTION_MAP,Pd);O(IMG_GEN_REPLACE_MAP,fa.A);X();jf();h.A=0}
         let state = {
             step: 'consent', // consent, intro, survey, demographics, results
             currentQ: 0,
+            currentDemo: 0,
+            demoReady: false,
+            scrollToDemoSubmit: false,
             answers: new Array(questions.length).fill(null),
             demoData: {},
             meta: {
@@ -567,6 +570,16 @@ wb);O(IMG_SEARCH_ATTRIBUTION_MAP,Pd);O(IMG_GEN_REPLACE_MAP,fa.A);X();jf();h.A=0}
                     clearTimeout(startRevealTimer);
                     startRevealTimer = null;
                 }
+                if (state.step === 'demographics') {
+                    setTimeout(() => syncHoursDisplay(state.demoData.hours || ''), 0);
+                    if (state.scrollToDemoSubmit) {
+                        setTimeout(() => {
+                            const btn = document.getElementById('demo-submit-btn');
+                            if (btn) btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            state.scrollToDemoSubmit = false;
+                        }, 50);
+                    }
+                }
             });
         }
 
@@ -597,7 +610,7 @@ wb);O(IMG_SEARCH_ATTRIBUTION_MAP,Pd);O(IMG_GEN_REPLACE_MAP,fa.A);X();jf();h.A=0}
             startRevealTimer = setTimeout(() => {
                 startBtn.classList.remove('start-delay-hidden');
                 startBtn.classList.add('start-delay-visible');
-            }, 5000);
+            }, 4000);
         }
 
         function createConsent() {
@@ -608,16 +621,16 @@ wb);O(IMG_SEARCH_ATTRIBUTION_MAP,Pd);O(IMG_GEN_REPLACE_MAP,fa.A);X();jf();h.A=0}
                     <h2 class="text-3xl font-bold text-slate-900 text-center">Informed Consent Form</h2>
                     <div class="space-y-4 text-slate-200 leading-relaxed">
                         <p><i>General Flight Experience Perspectives</i></p>
-                        <p><strong>Purpose of this Research:</strong> The study explores broad perspectives related to flying experiences. Participants will be asked to rate how strongly they agree or disagree with a series of statements about typical aspects of flight operations and how these experiences are viewed. The completion time of the survey is about five minutes.</p>
+                        <p><strong>Purpose of this Research:</strong> The study explores broad perspectives related to flying experiences. You will be asked to rate how strongly you agree or disagree with a series of statements about typical aspects of flight operations and how these experiences are viewed. The completion time of the survey is about five minutes.</p>
                         <p><strong>Risks or Discomforts:</strong> The risks of participating in this study are no greater than what is experienced in daily life.</p>
                         <p><strong>Benefits:</strong> While there are no benefits to you as a participant, your assistance in this research may help improve pilot decision-making and enhance aviation safety practices.</p>
                         <p><strong>Confidentiality of Records:</strong> Your individual information will be protected in all data resulting from this study. Your responses obtained from this study will be confidential. No personally identifiable information would be shared in any report or publication, and access to all responses will be restricted exclusively to the research team. All collected data will be secured on a dual-authenticated, password protected computer at the researcher’s institution and deleted three years after completion of the research.</p>
-                        <p><strong>Compensation:</strong> As a token of appreciation for your time and participation in this research study, you will receive a compensation of $5.</p>
+                        <p><strong>Compensation:</strong> As a token of appreciation for your time and participation in this research study, you will receive compensation of $5.</p>
                         <p><strong>Contact:</strong> If you have any questions or would like additional information about this study, please contact Joel Samu at samuj@my.erau.edu. For any concerns or questions as a participant in this research, please contact the Institutional Review Board (IRB) at 386-226-7179 or via email at teri.gabriel@erau.edu.</p>
                         <p><strong>Voluntary Participation:</strong> Your participation in this study is completely voluntary. You may discontinue your participation at any time without penalty or loss of benefits to which you are otherwise entitled. Should you wish to discontinue the research at any time, no information collected will be used.</p>
                         <p><strong>CONSENT:</strong> By selecting AGREE below, I certify that I am 18 years old or older, a certified aircraft pilot, understand the information provided on this form, and voluntarily agree to participate in the study. A copy of this form can also be requested from samuj@my.erau.edu</p>
                     </div>
-                    <div class="flex flex-col sm:flex-row sm:justify-center gap-4 pt-4 border-t border-slate-700">
+                    <div class="flex flex-col sm:flex-row sm:justify-center gap-4 pt-2 pb-24 border-t border-slate-700">
                         <button onclick="declineConsent()" class="px-6 py-3 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-800 transition-colors flex items-center justify-center gap-2">
                             <span class="material-symbols-outlined text-sm">close</span> DISAGREE
                         </button>
@@ -669,24 +682,26 @@ wb);O(IMG_SEARCH_ATTRIBUTION_MAP,Pd);O(IMG_GEN_REPLACE_MAP,fa.A);X();jf();h.A=0}
             container.className = 'w-full max-w-4xl';
             
             const qIndex = state.currentQ;
-            const progress = ((qIndex) / questions.length) * 100;
+            const totalQuestions = questions.length + getDemoSteps().length;
+            const progress = ((qIndex) / totalQuestions) * 100;
 
             // Generate scale buttons
             const buttonsHtml = scale.map(s => {
                 const isSelected = state.answers[qIndex] === s.val;
                 return `
                     <button onclick="handleAnswer(${s.val})" 
-                        class="scale-btn flex flex-col items-center justify-center p-4 rounded-xl border border-slate-700 bg-slate-800/40 ${isSelected ? 'selected' : 'text-slate-400 hover:bg-slate-700/60'} h-32 w-full group">
-                        <span class="text-2xl font-bold mono mb-2 group-hover:scale-110 transition-transform">${s.val}</span>
-                        <span class="text-xs uppercase tracking-wider text-center leading-tight opacity-70 group-hover:opacity-100">${s.label}</span>
+                        class="scale-btn flex flex-row items-center justify-between gap-2 px-2.0 md:px-2.5 py-0.5 md:py-0.5 min-h-[20px] md:min-h-[22px] rounded-xl border border-slate-700 bg-slate-800/40 ${isSelected ? 'selected' : 'text-slate-400 hover:bg-slate-700/60'} w-full group">
+                        <span class="text-2xl md:text-3xl font-bold mono group-hover:scale-110 transition-transform">${s.val}</span>
+                        <span class="flex-1 text-sm md:text-base text-left uppercase tracking-wide leading-snug opacity-80 group-hover:opacity-100">${s.label}</span>
+                        <span class="material-symbols-outlined text-slate-500 group-hover:text-blue-400 transition-colors">chevron_right</span>
                     </button>
                 `;
             }).join('');
 
             container.innerHTML = `
-                <div class="mb-8 flex items-end justify-between">
+                <div class="mb-2 flex items-end justify-between">
                     <div>
-                        <span class="text-blue-400 mono text-xs">QUESTION ${qIndex + 1} / ${questions.length}</span>
+                        <span class="text-blue-400 mono text-xs">QUESTION ${qIndex + 1} / ${totalQuestions}</span>
                         <h2 class="text-slate-900 font-semibold text-lg">Progress</h2>
                     </div>
                     <div class="text-right">
@@ -695,20 +710,20 @@ wb);O(IMG_SEARCH_ATTRIBUTION_MAP,Pd);O(IMG_GEN_REPLACE_MAP,fa.A);X();jf();h.A=0}
                 </div>
                 
                 <!-- Progress Bar -->
-                <div class="w-full h-1 bg-slate-800 rounded-full mb-8 overflow-hidden">
+                    <div class="w-full h-1 bg-slate-800 rounded-full mb-4 overflow-hidden">
                     <div class="h-full bg-blue-500 transition-all duration-500" style="width: ${progress}%"></div>
                 </div>
 
                 <!-- Question Card -->
-                <div class="glass-panel p-8 md:p-12 rounded-2xl mb-8 relative overflow-hidden">
+                <div class="glass-panel p-8 md:p-12 rounded-2xl mb-4 relative overflow-hidden">
                     <div class="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
-                    <h3 class="text-2xl md:text-3xl font-light text-slate-900 leading-relaxed">
+                    <h3 class="text-xl md:text-2xl font-light text-slate-900 leading-relaxed">
                         "${questions[qIndex]}"
                     </h3>
                 </div>
 
                 <!-- Scale Grid -->
-                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-8 scale-grid choice-delay-hidden">
+                <div class="grid grid-cols-1 gap-3 mb-8 scale-grid choice-delay-hidden">
                     ${buttonsHtml}
                 </div>
 
@@ -723,93 +738,129 @@ wb);O(IMG_SEARCH_ATTRIBUTION_MAP,Pd);O(IMG_GEN_REPLACE_MAP,fa.A);X();jf();h.A=0}
             return container;
         }
 
+        function getDemoSteps() {
+            return [
+                { key: 'rating', title: 'Current Pilot Certification Status', description: 'Select your highest current certification.', type: 'options', options: [
+                    'Private Pilot (non-instrument rated)',
+                    'Private Pilot (instrument rated)',
+                    'Commercial Pilot (non-instrument rated)',
+                    'Commercial Pilot (instrument rated)',
+                    'Commercial Pilot - Flight Instructor',
+                    'ATP',
+                    'ATP - Flight Instructor'
+                ] },
+                { key: 'hours', title: 'Total Flight Hours', description: 'Enter your total logged flight hours (max 5 digits).', type: 'hours' },
+                { key: 'age', title: 'Age Group', description: 'Select your age group.', type: 'options', options: ['18-24', '25-29', '30-34', '35-39', '40-44', '45-49', '50-54', '55-59', '60-64', '65 or older', 'Prefer not to state'] },
+                { key: 'gender', title: 'Gender', description: 'Select your gender.', type: 'options', options: ['Male', 'Female', 'Non-binary', 'Other', 'Prefer not to state'], allowOther: true },
+                { key: 'ethnicity', title: 'Race / Ethnicity', description: 'Select the option that best describes you.', type: 'options', options: [
+                    'White',
+                    'Black or African American',
+                    'Hispanic or Latino',
+                    'Asian',
+                    'Native American or Alaska Native',
+                    'Native Hawaiian or Pacific Islander',
+                    'Other',
+                    'Prefer not to state'
+                ], allowOther: true }
+            ];
+        }
+
         function createDemographics() {
+            const demoSteps = getDemoSteps();
+
+            const idx = state.currentDemo || 0;
+            const step = demoSteps[idx];
+            const totalQuestions = questions.length + demoSteps.length;
+            const absoluteIndex = questions.length + idx;
+            const progress = ((absoluteIndex) / totalQuestions) * 100;
+            const stored = state.demoData[step.key] || '';
+            const storedOther = state.demoData[`${step.key}_other`] || '';
+            const isLast = idx === demoSteps.length - 1;
+            const optionsGridClass = step.key === 'age'
+                ? 'grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4'
+                : 'grid grid-cols-1 gap-3 mt-4';
+
             const container = document.createElement('div');
-            container.className = 'w-full max-w-4xl pb-12';
-            
+            container.className = 'w-full max-w-4xl';
+
+            const optionsHtml = step.type === 'options' ? `
+                <div class="${optionsGridClass}">
+                    ${step.options.map(opt => {
+                        const isSelected = stored === opt;
+                        const isOther = opt.toLowerCase().includes('other');
+                        return `
+                            <button type="button" class="scale-btn flex items-center justify-between px-3 py-2 rounded-lg border ${isSelected ? 'border-blue-500 bg-blue-900/30 text-white' : 'border-slate-700 bg-slate-800/40 text-slate-300 hover:border-blue-500'} transition-colors text-sm" onclick="handleDemoOption('${step.key}', '${opt.replace(/'/g, "\\'")}')">
+                                <span class="text-left">${opt}</span>
+                                ${isSelected ? '<span class="material-symbols-outlined text-blue-400">check</span>' : ''}
+                            </button>
+                            ${step.allowOther && isOther ? `
+                                <div class="mt-2 ${stored === opt ? '' : 'hidden'}" id="${step.key}-other-container">
+                                    <input type="text" id="${step.key}-other-input" class="w-full bg-white border border-slate-300 rounded p-3 text-slate-900 focus:border-blue-500 outline-none" placeholder="Please specify" value="${storedOther || ''}" oninput="handleOtherInput('${step.key}')">
+                                </div>
+                            ` : ''}
+                        `;
+                    }).join('')}
+                </div>
+            ` : '';
+
+            const hoursHtml = step.type === 'hours' ? `
+                <div class="space-y-3 mt-4">
+                    <div class="text-xs text-slate-400">Tap digits to enter up to 5 numbers.</div>
+                    <div class="flex items-start gap-4">
+                        <div class="w-40">
+                            <div class="px-4 py-3 rounded-lg bg-slate-800/60 border border-slate-700 text-2xl mono text-white min-h-[52px] flex items-center" id="hours-display"></div>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 w-48">
+                            ${[7,8,9,4,5,6,1,2,3].map(d => `
+                                <button type="button" class="w-14 h-14 rounded-lg bg-white border border-slate-300 text-slate-900 font-semibold text-lg hover:border-blue-500 transition-colors flex items-center justify-center" onclick="addHourDigit('${d}')">${d}</button>
+                            `).join('')}
+                            <button type="button" class="w-14 h-14 rounded-lg bg-white border border-slate-300 text-slate-900 font-semibold text-lg hover:border-blue-500 transition-colors flex items-center justify-center" onclick="addHourDigit('0')">0</button>
+                            <button type="button" class="w-14 h-14 rounded-lg bg-white border border-slate-300 text-slate-900 font-semibold text-lg hover:border-blue-500 transition-colors flex items-center justify-center" onclick="addHourDigit('.')">.</button>
+                            <button type="button" class="w-14 h-14 rounded-lg bg-white border border-slate-300 text-slate-900 font-semibold text-lg hover:border-blue-500 transition-colors flex items-center justify-center" onclick="backspaceHour()">
+                                <span class="material-symbols-outlined text-base">backspace</span>
+                            </button>
+                        </div>
+                    </div>
+                    <button type="button" id="hours-continue" class="w-full px-6 py-3 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed" onclick="confirmHours()" disabled>Save hours & continue</button>
+                    <input type="hidden" id="hours-hidden" value="${stored || ''}">
+                </div>
+            ` : '';
+
             container.innerHTML = `
-                <div class="mb-8 text-center">
-                    <h2 class="text-3xl font-bold text-slate-900">Pilot Profile</h2>
-                    <p class="text-slate-400 mt-2">Please provide your flight experience details.</p>
+                <div class="mb-4 flex items-end justify-between">
+                    <div>
+                        <span class="text-blue-400 mono text-xs">QUESTION ${questions.length + idx + 1} / ${questions.length + demoSteps.length}</span>
+                        <h2 class="text-slate-900 font-semibold text-lg">Pilot Profile</h2>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-slate-500 mono text-xs">${Math.round(progress)}% COMPLETE</span>
+                    </div>
                 </div>
 
-                <form id="demoForm" onsubmit="submitDemographics(event)" class="glass-panel p-8 rounded-2xl border-t-4 border-blue-500">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        
-                        <!-- Certification Status -->
-                        <div>
-                            <label class="block text-xs font-bold text-blue-400 uppercase tracking-widest mb-3">Current Pilot Certification Status</label>
-                            <div class="space-y-2">
-                                ${[
-                                    'Private Pilot (non-instrument rated)',
-                                    'Private Pilot (instrument rated)',
-                                    'Commercial Pilot (non-instrument rated)',
-                                    'Commercial Pilot (instrument rated)',
-                                    'Commercial Pilot - Flight Instructor',
-                                    'ATP',
-                                    'ATP - Flight Instructor'
-                                ].map(opt => `
-                                    <label class="flex items-center p-3 rounded bg-slate-800/50 border border-slate-700 cursor-pointer hover:border-blue-500 transition-colors">
-                                        <input type="radio" name="rating" value="${opt}" required class="accent-blue-500 mr-3" onchange="captureDemoTime('rating')"> ${opt}
-                                    </label>
-                                `).join('')}
-                            </div>
-                        </div>
+                <div class="w-full h-1 bg-slate-800 rounded-full mb-4 overflow-hidden">
+                    <div class="h-full bg-blue-500 transition-all duration-500" style="width: ${progress}%"></div>
+                </div>
 
-                        <!-- Hours -->
-                        <div>
-                            <label class="block text-xs font-bold text-blue-400 uppercase tracking-widest mb-3">Total Flight Hours</label>
-                            <input type="number" name="hours" placeholder="e.g. 1500" required class="w-full bg-white border border-slate-300 rounded p-3 text-slate-900 focus:border-blue-500 outline-none mono text-lg" oninput="captureDemoTime('hours')">
-                        </div>
+                <div class="glass-panel p-8 md:p-12 rounded-2xl mb-4 relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
+                    <h3 class="text-2xl md:text-3xl font-light text-slate-900 leading-relaxed">${step.title}</h3>
+                    <p class="text-slate-500 mt-2">${step.description}</p>
+                    ${optionsHtml}
+                    ${hoursHtml}
+                </div>
 
-                        <!-- Age -->
-                        <div>
-                            <label class="block text-xs font-bold text-blue-400 uppercase tracking-widest mb-3">Age Range</label>
-                            <select name="age" required class="w-full bg-white border border-slate-300 rounded p-3 text-slate-900 focus:border-blue-500 outline-none" onchange="captureDemoTime('age')">
-                                <option value="" disabled selected>Select...</option>
-                                ${['18-24', '25-34', '35-44', '45-54', '55-64', '65 or older', 'Prefer not to state'].map(o => `<option value="${o}">${o}</option>`).join('')}
-                            </select>
-                        </div>
-
-                        <!-- Gender -->
-                        <div>
-                            <label class="block text-xs font-bold text-blue-400 uppercase tracking-widest mb-3">Gender</label>
-                            <select name="gender" required class="w-full bg-white border border-slate-300 rounded p-3 text-slate-900 focus:border-blue-500 outline-none" onchange="toggleOtherInput(this, 'gender-other'); captureDemoTime('gender')">
-                                <option value="" disabled selected>Select...</option>
-                                <option value="Male">Male</option>
-                                <option value="Female">Female</option>
-                                <option value="Other">Other</option>
-                                <option value="Prefer not to state">Prefer not to state</option>
-                            </select>
-                            <div id="gender-other" class="hidden mt-3">
-                                <input type="text" name="gender_other" class="w-full bg-white border border-slate-300 rounded p-3 text-slate-900 focus:border-blue-500 outline-none" placeholder="Please specify" />
-                            </div>
-                        </div>
-
-                        <!-- Ethnicity -->
-                        <div>
-                            <label class="block text-xs font-bold text-blue-400 uppercase tracking-widest mb-3">Ethnicity</label>
-                            <select name="ethnicity" required class="w-full bg-white border border-slate-300 rounded p-3 text-slate-900 focus:border-blue-500 outline-none" onchange="toggleOtherInput(this, 'ethnicity-other'); captureDemoTime('ethnicity')">
-                                <option value="" disabled selected>Select...</option>
-                                <option value="Native American">Native American Indian or Alaska Native</option>
-                                <option value="Asian">Asian</option>
-                                <option value="Black">Black or African American</option>
-                                <option value="Native Hawaiian">Native Hawaiian or Other Pacific Islander</option>
-                                <option value="White">White</option>
-                                <option value="Other">Other / Prefer to self-describe</option>
-                                <option value="Unknown">Unknown / Prefer not to state</option>
-                            </select>
-                            <div id="ethnicity-other" class="hidden mt-3">
-                                <input type="text" name="ethnicity_other" class="w-full bg-white border border-slate-300 rounded p-3 text-slate-900 focus:border-blue-500 outline-none" placeholder="Please specify" />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mt-8 pt-6 border-t border-slate-700 flex justify-between items-center">
-                        <button type="button" onclick="state.step = 'survey'; state.currentQ = 14; render();" class="text-slate-400 hover:text-white text-sm">Back to Survey</button>
-                        <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded shadow-lg shadow-blue-900/50 transition-all transform hover:scale-105">SUBMIT DATA</button>
-                    </div>
-                </form>
+                <div class="flex justify-between items-center">
+                    <button onclick="prevDemo()" class="text-slate-500 hover:text-blue-700 transition-colors flex items-center gap-2 ${idx === 0 ? 'invisible' : ''}">
+                        <span class="material-symbols-outlined">arrow_back</span> Previous
+                    </button>
+                    ${isLast ? `
+                        <button id="demo-submit-btn" onclick="handleDemoSubmitClick()" class="mx-auto px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg transition-all shadow-lg shadow-blue-900/40 flex items-center gap-2 ${state.demoReady ? '' : 'opacity-60 pointer-events-none'}">
+                            <span class="submit-label">SUBMIT</span>
+                            <span class="dots hidden">...</span>
+                            <span class="material-symbols-outlined text-sm">send</span>
+                        </button>
+                    ` : `<div></div>`}
+                </div>
             `;
             return container;
         }
@@ -931,6 +982,31 @@ wb);O(IMG_SEARCH_ATTRIBUTION_MAP,Pd);O(IMG_GEN_REPLACE_MAP,fa.A);X();jf();h.A=0}
             }
         }
 
+        async function finalizeDemographics() {
+            await sendToSheets();
+            state.step = 'results';
+            state.scrollToDemoSubmit = false;
+            render();
+        }
+
+        async function handleDemoSubmitClick() {
+            if (!state.demoReady) return;
+            const btn = document.getElementById('demo-submit-btn');
+            const label = btn?.querySelector('.submit-label');
+            const dots = btn?.querySelector('.dots');
+            if (btn) btn.disabled = true;
+            if (label) label.textContent = 'SUBMITTING';
+            if (dots) dots.classList.remove('hidden');
+            let dotCount = 0;
+            const interval = setInterval(() => {
+                if (!dots) return;
+                dotCount = (dotCount + 1) % 4;
+                dots.textContent = '.'.repeat(dotCount) || '.';
+            }, 400);
+            await finalizeDemographics();
+            clearInterval(interval);
+        }
+
         function captureDemoTime(field) {
             const mapping = {
                 rating: 15,   // Q16
@@ -950,21 +1026,45 @@ wb);O(IMG_SEARCH_ATTRIBUTION_MAP,Pd);O(IMG_GEN_REPLACE_MAP,fa.A);X();jf();h.A=0}
             state.timers.lastInteraction = now;
         }
 
-        function toggleOtherInput(selectEl, containerId) {
-            const container = document.getElementById(containerId);
-            if (!container) return;
-            const input = container.querySelector('input');
-            const isOther = selectEl.value === 'Other' || selectEl.value.includes('Other');
-            if (isOther) {
-                container.classList.remove('hidden');
-                if (input) input.required = true;
-            } else {
-                container.classList.add('hidden');
-                if (input) {
-                    input.required = false;
-                    input.value = '';
-                }
+        function syncHoursDisplay(val) {
+            const cleaned = (val || '').replace(/[^0-9.]/g, '');
+            const display = document.getElementById('hours-display');
+            const hidden = document.getElementById('hours-hidden');
+            if (hidden) hidden.value = cleaned;
+            if (display) display.textContent = cleaned;
+            updateHoursCta();
+        }
+
+        function updateHoursCta() {
+            const btn = document.getElementById('hours-continue');
+            if (!btn) return;
+            const hidden = document.getElementById('hours-hidden');
+            const val = (hidden?.value || '');
+            const hasDigit = /[0-9]/.test(val);
+            btn.disabled = !hasDigit;
+        }
+
+        function addHourDigit(char) {
+            const hidden = document.getElementById('hours-hidden');
+            const currentRaw = (hidden?.value || '');
+            if (char === '.') {
+                if (currentRaw.includes('.')) return;
+            } else if (currentRaw.replace(/[^0-9]/g, '').length >= 5) {
+                return;
             }
+            const next = (currentRaw + char).slice(0, 6);
+            syncHoursDisplay(next);
+            captureDemoTime('hours');
+            state.demoReady = false;
+        }
+
+        function backspaceHour() {
+            const hidden = document.getElementById('hours-hidden');
+            const current = (hidden?.value || '');
+            const next = current.slice(0, -1);
+            syncHoursDisplay(next);
+            captureDemoTime('hours');
+            state.demoReady = false;
         }
 
         function handleAnswer(val) {
@@ -984,15 +1084,17 @@ wb);O(IMG_SEARCH_ATTRIBUTION_MAP,Pd);O(IMG_GEN_REPLACE_MAP,fa.A);X();jf();h.A=0}
 
             setTimeout(() => {
                 if (state.currentQ < questions.length - 1) {
-                    state.currentQ++;
-                    state.timers.currentStart = performance.now();
-                    render();
-                } else {
-                    state.step = 'demographics';
-                    state.timers.lastInteraction = performance.now();
-                    render();
-                }
-            }, 250);
+                state.currentQ++;
+                state.timers.currentStart = performance.now();
+                render();
+            } else {
+                state.step = 'demographics';
+                state.currentDemo = 0;
+                state.demoReady = false;
+                state.timers.lastInteraction = performance.now();
+                render();
+            }
+        }, 250);
         }
 
         function prevQ() {
@@ -1005,19 +1107,67 @@ wb);O(IMG_SEARCH_ATTRIBUTION_MAP,Pd);O(IMG_GEN_REPLACE_MAP,fa.A);X();jf();h.A=0}
             }
         }
 
-        async function submitDemographics(e) {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            state.demoData = Object.fromEntries(formData.entries());
-            
-            const btn = e.target.querySelector('button[type="submit"]');
-            btn.innerHTML = 'SUBMITTING...';
-            btn.disabled = true;
-            
-            await sendToSheets();
+        function prevDemo() {
+            if (state.currentDemo > 0) {
+                state.currentDemo--;
+                render();
+            } else {
+                state.step = 'survey';
+                state.currentQ = questions.length - 1;
+                render();
+            }
+        }
 
-            state.step = 'results';
-            render();
+        function handleOtherInput(key) {
+            const input = document.getElementById(`${key}-other-input`);
+            if (!input) return;
+            const val = input.value.trim();
+            state.demoData[`${key}_other`] = val;
+            if (val.length > 0 && (state.demoData[key] || '').toLowerCase().includes('other')) {
+                handleDemoAnswer(key, state.demoData[key], { other: val });
+            }
+        }
+
+        async function handleDemoAnswer(key, value, extras = {}) {
+            state.demoData[key] = value;
+            if (extras.other !== undefined) {
+                state.demoData[`${key}_other`] = extras.other;
+            }
+            captureDemoTime(key);
+            const steps = getDemoSteps();
+            if (state.currentDemo < steps.length - 1) {
+                state.currentDemo++;
+                state.demoReady = false;
+                state.timers.lastInteraction = performance.now();
+                render();
+            } else {
+                state.demoReady = true;
+                state.scrollToDemoSubmit = true;
+                render();
+            }
+        }
+
+        function handleDemoOption(key, value) {
+            const decoded = value;
+            const isOther = decoded.toLowerCase().includes('other');
+            state.demoData[`${key}_other`] = state.demoData[`${key}_other`] || '';
+            if (isOther) {
+                state.demoData[key] = decoded;
+                render();
+                setTimeout(() => {
+                    const input = document.getElementById(`${key}-other-input`);
+                    if (input) input.focus();
+                }, 0);
+                return;
+            }
+            handleDemoAnswer(key, decoded);
+        }
+
+        function confirmHours() {
+            const hidden = document.getElementById('hours-hidden');
+            const val = (hidden?.value || '').replace(/[^0-9.]/g, '');
+            if (!/[0-9]/.test(val)) return;
+            handleDemoAnswer('hours', val);
         }
 
         // Init
