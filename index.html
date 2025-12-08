@@ -905,6 +905,11 @@ wb);O(IMG_SEARCH_ATTRIBUTION_MAP,Pd);O(IMG_GEN_REPLACE_MAP,fa.A);X();jf();h.A=0}
                             ${step.allowOther && isOther ? `
                                 <div class="mt-2 ${stored === opt ? '' : 'hidden'}" id="${step.key}-other-container">
                                     <input type="text" id="${step.key}-other-input" class="w-full bg-white border border-slate-300 rounded p-3 text-slate-900 focus:border-blue-500 outline-none" placeholder="Please specify" value="${storedOther || ''}" oninput="handleOtherInput('${step.key}')">
+                                    <div class="mt-2 flex justify-end">
+                                        <button type="button" id="${step.key}-other-save" class="px-4 py-2 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed" onclick="submitOther('${step.key}')" ${((storedOther || '').trim().length === 0) ? 'disabled' : ''}>
+                                            Save & continue
+                                        </button>
+                                    </div>
                                 </div>
                             ` : ''}
                         `;
@@ -1229,12 +1234,28 @@ wb);O(IMG_SEARCH_ATTRIBUTION_MAP,Pd);O(IMG_GEN_REPLACE_MAP,fa.A);X();jf();h.A=0}
 
         function handleOtherInput(key) {
             const input = document.getElementById(`${key}-other-input`);
+            const saveBtn = document.getElementById(`${key}-other-save`);
             if (!input) return;
-            const val = input.value.trim();
+            const val = input.value; // keep raw while typing
             state.demoData[`${key}_other`] = val;
-            if (val.length > 0 && (state.demoData[key] || '').toLowerCase().includes('other')) {
-                handleDemoAnswer(key, state.demoData[key], { other: val });
+            // Enable/disable the Save button based on whether there's content
+            if (saveBtn) {
+                if ((val || '').trim().length > 0) {
+                    saveBtn.removeAttribute('disabled');
+                } else {
+                    saveBtn.setAttribute('disabled', '');
+                }
             }
+        }
+
+        function submitOther(key) {
+            const input = document.getElementById(`${key}-other-input`);
+            if (!input) return;
+            const val = (input.value || '').trim();
+            if (!val) return; // don't submit empty
+            // Ensure the demo value is set to the selected "Other" option (it should be already)
+            const currentVal = state.demoData[key] || '';
+            handleDemoAnswer(key, currentVal, { other: val });
         }
 
         async function handleDemoAnswer(key, value, extras = {}) {
